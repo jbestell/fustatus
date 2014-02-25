@@ -22,7 +22,7 @@ parser.add_argument('incident', help='4-digit number of incident to parse and st
 args = parser.parse_args()
 
 #Name this script
-name = "hpcloud-incidnet-status"
+name = "hpcloud-incident-status"
 # Get the Current 'node', basically signifying the working incident in Drupal's niceurl config
 current_link = args.incident
 

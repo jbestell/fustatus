@@ -37,9 +37,10 @@ entry  = requests.get("https://community.hpcloud.com/status/" + type + "/" + cur
 tree = html.fromstring(entry.text)
 
 
-# locating XPATH matches in one spot
+# locating XPATH matches in one spot node ID is in CSS id
 node_match   = '//*[@id="node-' + current_link
 match_desc   = node_match + '"]/div/div[last()]/div/div/p[1]/text()'
+# 'status' is always the last element in the group of children, so use XPATH thusly
 match_status = node_match + '"]/div/div[1]/div[last()]/div[last()]/div/text()'
 match_start1 = node_match + '"]/div/div[1]/div[2]/div/div/div[1]/span/text()'
 match_start2 = node_match + '"]/div/div[1]/div[1]/div/div/div[1]/span/text()'
@@ -48,80 +49,91 @@ match_end1   = node_match + '"]/div/div[1]/div[2]/div/div/div[2]/span/text()'
 match_end2   = node_match + '"]/div/div[1]/div[1]/div/div/div[2]/span/text()'
 match_end3   = node_match + '"]/div/div[1]/div[2]/div/div/div[2]/span/text()'
 
+# Possible Status values
+current_status = ['ONGOING', 'MONITORING', 'RESOLVED']
 
 # Build a list object using XPATH and some local variable magic
 item = {}
 item['nodeId'] = current_link
 item['link'] = start_url
+#Set these to 'None' for now, as they are to be modified later in the cycle
 item['sub_status'] = None
 item['interval'] = None
+# Get the description 
 item['desc'] = tree.xpath(str(match_desc))
-
-# 'status' is always the last element in the group of children, so use XPATH thusly
-#item['status'] = "ONGOING" # !! TESTING
-#item['status'] = "MONITORING" # !! TESTING
 item['status'] = tree.xpath(str(match_status))[0].upper()
 
-#Set these to 'None' for now, as they are to be modified later in the cycle
+# Fancy reassignment of string to POSIX timestamp. In our current context: 
+# "Monday, February 24, 2014 11:30 AM UTC" strptime([var],"%A, %B %d, %Y %I:%M %p %Z") -->  strftime("%s",[var])
+def timestamp (str, informat, outformat):
+			"Convert a string date to a POSIX timestamp"
+			global time
+			str = time.strptime(str, informat)
+			str = strftime(outformat,str)
+			return str;
+
 
 # This is the tricky bit - there can be as many as four //div/ child matches for <div class="filed-label">
 # and it varies based on whether:
-# - the affected product is set
-# - the end time is toggled
+# -> the affected product is set
+# -> the end time is toggled
 # End time is a little easier to deal with as it only occurs at the end of an incident, or a post-mortem
 # 'confession' post or after-incident advisory. In all cases we need to match and capture all of these
-#items whether or not they exist.
+# items whether or not they exist.
 
-# A Status of RESOLVED is the best indicator that the End Field might be populated.
-if item['status'] in ('RESOLVED'):
+# A Status of RESOLVED is the best indicator that the End Field might be populated, so use it for conditionals.
+if item['status'] in (current_status[2]):
         try:
-                item['time_start'] = tree.xpath(match_start1)[0]
+                #Matches if Product is Set
+		item['time_start'] = timestamp(tree.xpath(match_start1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
         except IndexError:
 
-                item['time_start'] = tree.xpath(match_start2)[0]
 
-        # Fancy reassignment of string to POSIX timestamp:
-        # "Monday, February 24, 2014 11:30 AM UTC" strptime([var],"%A, %B %d, %Y %I:%M %p %Z") -->  strftime("%s",[var])
-        item['time_start'] = time.strptime(item['time_start'], "%A, %B %d, %Y %I:%M %p %Z")
-        item['time_start'] = strftime("%s",item['time_start'])
+                item['time_start'] = timestamp(tree.xpath(match_start2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
-        try:
-                # Matches if Product AND End Date is Shown
-                item['time_end'] = tree.xpath(match_end1)[0]
-                item['time_end'] = time.strptime(item['time_end'], "%A, %B %d, %Y %I:%M %p %Z")
-                item['time_end'] = strftime("%s",item['time_end'])
+	try:
 
+                # Matches if Product AND End Date is Shown  /div/div[1]/div[2]/div/div/div[2]/span/text()')[0]
+				
+				item['time_end'] = timestamp(tree.xpath(match_end1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
-        except IndexError:
-                try:
-                        # Matches if Start and End Date is Shown //*[@id="node-2419"]/div/div[1]/div[1]/div/div/div[2]/span
-                        item['time_end'] = tree.xpath(match_end2)[0]
-                        item['time_end'] = time.strptime(item['time_end'], "%A, %B %d, %Y %I:%M %p %Z")
-                        item['time_end'] = strftime("%s",item['time_end'])
+	except IndexError:
+		try:
+                        # Matches if only Start and End Date is Shown /div/div[1]/div[1]/div/div/div[2]/span
+                        item['time_end'] = timestamp(tree.xpath(match_end2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
                 except IndexError:
-                        # No Product or End Date - Set it to Start Date
+                        # Resolved, but No Product or End Date - Set it to Start Date (legacy)
                         item['time_end'] = item['time_start']
 
                 else:
-                        # All Three: Product, Start and End are set //*[@id="node-2419"]/div/div[1]/div[2]/div/div/div[2]/span
-                        item['time_end'] = tree.xpath(match_end3)[0]
-                        item['time_end'] = time.strptime(item['time_end'], "%A, %B %d, %Y %I:%M %p %Z")
-                        item['time_end'] = strftime("%s",item['time_end'])
+                        # All Three: Product, Start and End are set /div/div[1]/div[2]/div/div/div[2]/span
+                        item['time_end'] = timestamp(tree.xpath(match_end3)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+
 
         else:
-                # Null it out for all other conditions (ultimate)
+                # Pass for all other conditions (ultimate)
                 #item['time_end'] = None
                 pass
 
-elif item['status'] in ('ONGOING', 'MONITORING'):
+# If the status is ONGOING or MONITORING  
+elif item['status'] in (current_status[0], current_status[1]):
 
-        item['time_start'] = tree.xpath(match_start3)[0]
-        item['time_start'] = time.strptime(item['time_start'], "%A, %B %d, %Y %I:%M %p %Z")
-        item['time_start'] = strftime("%s",item['time_start'])
-        item['time_end'] = None
+	try:
+                # ONG / MON - Matches Start if Product IS set.
+                item['time_start'] = timestamp(tree.xpath(match_start1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+
+        except IndexError:
+
+		# ONG / MON - Matches Start if Product IS NOT set.
+                item['time_start'] = timestamp(tree.xpath(match_start2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+
+	#no END Date, so...
+	item['time_end'] = None
+
 else:
+	# For all other scenarios, just null them both out. 
         item['time_start'] = None
         item['time_end'] = None
 
@@ -134,6 +146,4 @@ except IOError:
         print "Error: can\'t find file or read data"
 else:
         print current_link + ".json written successfully"
-
-#print item
 

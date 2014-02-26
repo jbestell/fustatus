@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # Public: fustatus-item
 #
-# SupFubot project - API interaction component
+# SupFubot project - Item Event Status Processor
 # For details see:
-#https://docs.google.com/document/d/1Z1tc3_fMLGu1qqwW5BIUgPQdpp3u2p-HKXqx4Dn2VHQ
+# https://github.com/jbestell/fustatus
 
 import time
 import argparse
@@ -22,7 +22,7 @@ parser.add_argument('incident', help='4-digit number of incident to parse and st
 args = parser.parse_args()
 
 #Name this script
-name = "hpcloud-incident-status"
+name = "hpcloud-incident-status-processor"
 # Get the Current 'node', basically signifying the working incident in Drupal's niceurl config
 current_link = args.incident
 
@@ -39,7 +39,8 @@ tree = html.fromstring(entry.text)
 
 # locating XPATH matches in one spot node ID is in CSS id
 node_match   = '//*[@id="node-' + current_link
-match_desc   = node_match + '"]/div/div[last()]/div/div/p[1]/text()'
+#match_desc   = node_match + '"]/div/div[last()]/div/div/text()'
+match_desc   = node_match + '"]/div/div[last()]/div/div/descendant::*/text()'
 # 'status' is always the last element in the group of children, so use XPATH thusly
 match_status = node_match + '"]/div/div[1]/div[last()]/div[last()]/div/text()'
 match_start1 = node_match + '"]/div/div[1]/div[2]/div/div/div[1]/span/text()'
@@ -59,8 +60,10 @@ item['link'] = start_url
 #Set these to 'None' for now, as they are to be modified later in the cycle
 item['sub_status'] = None
 item['interval'] = None
-# Get the description 
+# Get the description - join if multiple descendant paragraphs.
 item['desc'] = tree.xpath(str(match_desc))
+item['desc'] = " ".join(item['desc'])
+
 item['status'] = tree.xpath(str(match_status))[0].upper()
 
 # Fancy reassignment of string to POSIX timestamp. In our current context: 

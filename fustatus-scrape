@@ -17,21 +17,26 @@ import requests
 
 
 # Get incidents passed to script
-parser = argparse.ArgumentParser()
-parser.add_argument('incident', help='4-digit number of incident to parse and store')
-args = parser.parse_args()
+# !! parser = argparse.ArgumentParser()
+# !! parser.add_argument('incident', help='4-digit number of incident to parse and store')
+# !! args = parser.parse_args()
 
 #Name this script
 name = "hpcloud-incident-status-scraper"
 # Get the Current 'node', basically signifying the working incident in Drupal's niceurl config
-current_link = args.incident
+#current_link = args.incident
 
 # Type can be Incident or Maintenance but really almost always incident
-# !!CONSIDER REMOVING
 type = "incident"
 # The working permalink to the incident report
-start_url = "https://community.hpcloud.com/status/" + type + "/" + current_link
+# !! start_url = "https://community.hpcloud.com/status/" + type + "/" + current_link
 
 # Use LXML to grab the document and save it as an object
-entry  = requests.get("https://community.hpcloud.com/status/" + type + "/" + current_link)
+entry  = requests.get("https://community.hpcloud.com/status")
 tree = html.fromstring(entry.text)
+
+#links = tree.xpath("//a[@href].text()")
+links = [i.split('/')[3] for i in tree.xpath("//a[contains(@href, 'incident')]/@href")]
+
+
+print links

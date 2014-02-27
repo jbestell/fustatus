@@ -15,8 +15,6 @@ from lxml import html
 import lxml.html
 import requests
 
-PYTHONDEBUG = ''
-
 # Fancy reassignment of string to POSIX timestamp. In our current context:
 # "Monday, February 24, 2014 11:30 AM UTC" strptime([var],"%A, %B %d, %Y %I:%M %p %Z") -->  strftime("%s",[var])
 def timestamp (str, informat, outformat):
@@ -43,11 +41,12 @@ nodes  = args.incident_file
 # grabs the file written by fustatus-scrape and reads it in as a list for processing
 with open(nodes) as f:
         nodes = f.read()
-nodes =  nodes.replace("[", "").replace("]", "").strip().split(',')
+nodes =  nodes.replace("[", "").replace("]", "").strip().split(', ')
 
 # Type can be Incident or Maintenance but really almost always incident
 # !!CONSIDER REMOVING
 type = "incident"
+
 
 for nodeid in nodes:
 	current_link = nodeid
@@ -161,5 +160,4 @@ for nodeid in nodes:
 	else:
 				print current_link + ".json written successfully"
 
-print nodeid
-
+print nodes

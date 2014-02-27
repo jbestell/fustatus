@@ -56,4 +56,4 @@ with open(nodes) as f:
         nodes = f.read()
 nodes =  nodes.replace("[", "").replace("]", "").strip().split(',')
 
-print nodes
+#print nodes

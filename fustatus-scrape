@@ -35,8 +35,25 @@ type = "incident"
 entry  = requests.get("https://community.hpcloud.com/status")
 tree = html.fromstring(entry.text)
 
-#links = tree.xpath("//a[@href].text()")
+# Grabs all of the incident links and splits out the url portion, we just need the nodeId's as integers
+# aww yiss list comprehensions (freddie)
 links = [i.split('/')[3] for i in tree.xpath("//a[contains(@href, 'incident')]/@href")]
+links = [ int(x) for x in links ]
 
 
-print links
+# Writes to file to be grabbed by fustatus-item
+f = open('./incidents/currentmaster.list','w')
+f.write(str(links) + '\n')
+f.close()
+
+#with open("incidents/currentmaster.list") as f:
+#        nodes = f.read()
+#print nodes.replace("[", "").replace("]", "").strip().split(',')
+
+nodes = "incidents/currentmaster.list"
+
+with open(nodes) as f:
+        nodes = f.read()
+nodes =  nodes.replace("[", "").replace("]", "").strip().split(',')
+
+print nodes

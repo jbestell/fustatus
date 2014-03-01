@@ -38,17 +38,14 @@ uses python-crontab to generate, maintain and delete cron jobs for periodic API 
 	- Interval marker is updated to [1]
  - a 'duration' timestamp (POSIX), calculated from the arbitrary start time entered by agent, is appended based on the current interval
 
-<<<<<<< HEAD
 **fs-action.py
 
 - [ACTION] API notifications is sent to listening roomId(s)
-=======
 
 **fs-action.py**
 Houses all [HipChat] API interaction methods.
 
 - [ACTION] API notifications sent to listening roomId(s)
->>>>>>> e11fd03570bd4c55a46f24feb4385e317d81a472
 ```
     <strong>NOTICE</strong> New Status Message Posted: 
     <a href="_link_">_title_</a>

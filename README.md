@@ -43,11 +43,9 @@
 	-OPENED sub-status is removed.
 	- Interval marker is updated to [1]
 
-
 **fs-action.py
 
 - [ACTION] API notifications is sent to listening roomId(s)
-
 ```
     <strong>NOTICE</strong> New Status Message Posted: 
     <a href="_link_">_title_</a>

@@ -1,0 +1,148 @@
+#!/usr/bin/python
+# Public: fustatus-item
+#
+# SupFubot project - API interaction component
+# For details see:
+#https://docs.google.com/document/d/1Z1tc3_fMLGu1qqwW5BIUgPQdpp3u2p-HKXqx4Dn2VHQ
+
+import time
+import argparse
+from time import strftime
+from time import mktime
+from datetime import datetime
+import json
+from lxml import html
+import lxml.html
+import requests
+
+
+# Get incidents passed to script
+parser = argparse.ArgumentParser()
+parser.add_argument('incident', help='4-digit number of incident to parse and store')
+args = parser.parse_args()
+
+#Name this script
+name = "hpcloud-incident-status"
+# Get the Current 'node', basically signifying the working incident in Drupal's niceurl config
+current_link = args.incident
+
+# Type can be Incident or Maintenance but really almost always incident
+# !!CONSIDER REMOVING
+type = "incident"
+# The working permalink to the incident report
+start_url = "https://community.hpcloud.com/status/" + type + "/" + current_link
+
+# Use LXML to grab the document and save it as an object
+entry  = requests.get("https://community.hpcloud.com/status/" + type + "/" + current_link)
+tree = html.fromstring(entry.text)
+
+
+# locating XPATH matches in one spot
+node_match   = '//*[@id="node-' + current_link
+match_desc   = node_match + '"]/div/div[last()]/div/div/p[1]/text()'
+match_status = node_match + '"]/div/div[1]/div[last()]/div[last()]/div/text()'
+match_start1 = node_match + '"]/div/div[1]/div[2]/div/div/div[1]/span/text()'
+match_start2 = node_match + '"]/div/div[1]/div[1]/div/div/div[1]/span/text()'
+match_start3 = node_match + '"]/div/div[1]/div[2]/div/div/div[1]/span/text()'
+match_end1   = node_match + '"]/div/div[1]/div[2]/div/div/div[2]/span/text()'
+match_end2   = node_match + '"]/div/div[1]/div[1]/div/div/div[2]/span/text()'
+match_end3   = node_match + '"]/div/div[1]/div[2]/div/div/div[2]/span/text()'
+
+
+
+# Build a list object using XPATH and some local variable magic
+item = {}
+item['nodeId'] = current_link
+item['link'] = start_url
+item['sub_status'] = None
+item['interval'] = None
+item['desc'] = tree.xpath(str(match_desc))
+
+# Corral all status possibilities
+current_status = ['ONGOING', 'MONITORING', 'RESOLVED']
+# 'status' is always the last element in the group of children, so use XPATH thusly
+item['status'] = tree.xpath(str(match_status))[0].upper()
+
+#Set these to 'None' for now, as they are to be modified later in the cycle
+
+# This is the tricky bit - there can be as many as four //div/ child matches for <div class="filed-label">
+# and it varies based on whether:
+# - the affected product is set
+# - the end time is toggled
+# End time is a little easier to deal with as it only occurs at the end of an incident, or a post-mortem
+# 'confession' post or after-incident advisory. In all cases we need to match and capture all of these
+#items whether or not they exist.
+
+# A Status of RESOLVED is the best indicator that the End Field might be populated.
+if item['status'] in (current_status[2]):
+        try:
+                item['time_start'] = tree.xpath(match_start1)[0]
+
+        except IndexError:
+
+                item['time_start'] = tree.xpath(match_start2)[0]
+
+        # Fancy reassignment of string to POSIX timestamp:
+        # "Monday, February 24, 2014 11:30 AM UTC" strptime([var],"%A, %B %d, %Y %I:%M %p %Z") -->  strftime("%s",[var])
+        item['time_start'] = time.strptime(item['time_start'], "%A, %B %d, %Y %I:%M %p %Z")
+        item['time_start'] = strftime("%s",item['time_start'])
+
+        try:
+
+def timestamp (str, informat, outformat)
+    "Convert a string date to a POSIX timestamp"
+    str = time.strptime(str, informat)
+    str = strftime(outformat,str)
+    return str;   
+
+
+                # Matches if Product AND End Date is Shown
+                item['time_end'] = tree.xpath(match_end1)[0]
+                item['time_end'] = time.strptime(item['time_end'], "%A, %B %d, %Y %I:%M %p %Z")
+                item['time_end'] = strftime("%s",item['time_end'])
+
+
+        except IndexError:
+                try:
+                        # Matches if Start and End Date is Shown //*[@id="node-2419"]/div/div[1]/div[1]/div/div/div[2]/span
+                        item['time_end'] = tree.xpath(match_end2)[0]
+                        item['time_end'] = time.strptime(item['time_end'], "%A, %B %d, %Y %I:%M %p %Z")
+                        item['time_end'] = strftime("%s",item['time_end'])
+
+                except IndexError:
+                        # Resolved, but No Product or End Date - Set it to Start Date (legacy)
+                        item['time_end'] = item['time_start']
+
+                else:
+                        # All Three: Product, Start and End are set //*[@id="node-2419"]/div/div[1]/div[2]/div/div/div[2]/span
+                        item['time_end'] = tree.xpath(match_end3)[0]
+                        item['time_end'] = time.strptime(item['time_end'], "%A, %B %d, %Y %I:%M %p %Z")
+                        item['time_end'] = strftime("%s",item['time_end'])
+
+        else:
+                # Null it out for all other conditions (ultimate)
+                #item['time_end'] = None
+                pass
+
+elif item['status'] in ('ONGOING', 'MONITORING'):
+
+        item['time_start'] = tree.xpath(match_start3)[0]
+        item['time_start'] = time.strptime(item['time_start'], "%A, %B %d, %Y %I:%M %p %Z")
+        item['time_start'] = strftime("%s",item['time_start'])
+        item['time_end'] = None
+else:
+        item['time_start'] = None
+        item['time_end'] = None
+
+
+try:
+        f = open('./incidents/' + current_link + '.json','w')
+        f.write(str(item) + '\n')
+        f.close()
+except IOError:
+        print "Error: can\'t find file or read data"
+else:
+        print current_link + ".json written successfully"
+
+#print item
+

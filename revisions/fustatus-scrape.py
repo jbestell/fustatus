@@ -42,7 +42,7 @@ links = [ int(x) for x in links ]
 
 
 # Writes to file to be grabbed by fustatus-item
-f = open('./incidents/currentmaster.list','w')
+f = open('/home/hpcsint/fustatus/incidents/currentmaster.list','w')
 f.write(str(links) + '\n')
 f.close()
 
@@ -50,10 +50,11 @@ f.close()
 #        nodes = f.read()
 #print nodes.replace("[", "").replace("]", "").strip().split(',')
 
-nodes = "incidents/currentmaster.list"
+nodes = "/home/hpcsint/fustatus/incidents/currentmaster.list"
 
 with open(nodes) as f:
         nodes = f.read()
+
 nodes =  nodes.replace("[", "").replace("]", "").strip().split(',')
 
-#print nodes
+print nodes

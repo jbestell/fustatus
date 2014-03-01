@@ -152,7 +152,7 @@ for nodeid in nodes:
 
 
 	try:
-			f = open('./incidents/' + current_link + '.json','w')
+			f = open('/home/hpcsint/fustatus/incidents/' + current_link + '.json','w')
 			f.write(str(item) + '\n')
 			f.close()
 	except IOError:

@@ -1,0 +1,58 @@
+import time
+from time import strftime
+from time import mktime
+from datetime import datetime
+import json
+from lxml import html
+import lxml.html
+import requests
+
+#Name this script 
+name = "hpcs-status-entry"
+current_link = "2411"
+type = "incident"
+start_url = "https://community.hpcloud.com/status/" + type + "/" + current_link
+
+entry  = requests.get("https://community.hpcloud.com/status/" + type + "/" + current_link)
+tree = html.fromstring(entry.text)
+
+
+
+item = {}
+item['nodeId'] = current_link
+item['desc'] = str(tree.xpath('//*[@id="node-' + current_link + '"]/div/div[last()]/div/div/p[1]/text()')[0])
+item['title'] = str(tree.xpath('//*[@id="page-title"]/text()')[0])
+item['link'] = start_url
+# This Format ---> Monday, February 24, 2014 11:30 AM UTC --> ("%A, %B %d, %Y %I:%M %p %Z")
+item['status'] = str(tree.xpath('//*[@id="node-' + current_link + '"]/div/div[1]/div[last()]/div[last()]/div/text()')[0].upper())
+#item['field_val2'] = str(tree.xpath('//*[@id="node-' + current_link + '"]/div/div[1]/div[3]/div[2]/div/text()')[0].upper())
+#item['field_val3'] = str(tree.xpath('//*[@id="node-' + current_link + '"]/div/div[1]/div[3]/div[3]/div/text()')[0].upper())
+# match after resolved //*[@id="node-2411"]/div/div[1]/div[2]/div[2]/div
+item['sub_status'] = None
+item['interval'] = None
+if item['status'] in ('RESOLVED'):
+	item['time_start'] = None
+	item['time_end'] = None
+else: 
+	item['time_start'] = tree.xpath('//*[@id="node-' + current_link + '"]/div/div[1]/div[2]/div/div/div[1]/span/text()')[0]
+	item['time_start'] = time.strptime(item['time_start'], "%A, %B %d, %Y %I:%M %p %Z")
+	item['time_start'] = strftime("%s",item['time_start'])
+	item['time_end'] = tree.xpath('//*[@id="node-' + current_link + '"]/div/div[1]/div[2]/div/div/div[2]/span/text()')[0]
+	item['time_end'] = time.strptime(item['time_end'], "%A, %B %d, %Y %I:%M %p %Z")
+	item['time_end'] = strftime("%s",item['time_end'])
+
+#items.append(item)
+
+#f = open('./incidents/' + current_link + '.json','w')
+#f.write(str(items) + '\n')
+#f.close()
+
+#print start_url
+print item
+
+
+#//*[@id="node-2392"]/div/div[1]/div[2]/div/div/div[1]/div
+#//*[@id="node-2392"]/div/div[1]/div[2]/div/div/div[1]/span
+
+
+

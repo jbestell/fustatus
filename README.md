@@ -38,7 +38,7 @@ uses python-crontab to generate, maintain and delete cron jobs for periodic API 
 	- Interval marker is updated to [1]
  - a 'duration' timestamp (POSIX), calculated from the arbitrary start time entered by agent, is appended based on the current interval
 
-**fs-action.py
+**fs-action.py**
 
 - [ACTION] API notifications is sent to listening roomId(s)
 

@@ -1,12 +1,12 @@
 **FuStatus Logical Outline - Incident and Maintenance Notifications**
 
-**fustatus-scrape.py (incident_method)  [completion: 10%]**
+**fs-scrape.py (incident_method)  [completion: 100%]**
 
  - Scrapes status page every 5 minutes
  - main page (i.e., /status ) is the focus, older nodes are not relevant to this process
  - Nodes on page are counted and stored in a JSON array (dict)
  
-**fustatus-item.py   [completion: 80%]**
+**fs-item.py   [completion: 100%]**
  -  spiders each node URL from fustatus-scrape.py and scrapes for the following fields
  	```
 	{
@@ -24,7 +24,10 @@
  - saves these entries, or 'nodes' as JSON files in a directory './incidents',  one per nodeId
  
  
-**fustatus-mon.py  [completion: 00%]**
+**fs-event.py  [completion: 00%]**
+
+- uses python-crontab to generate, maintain and delete cron jobs for API periodic interactions
+
 
  - monitors current status of incidents
  - indexes node files and checks for new files once every minute.
@@ -39,22 +42,19 @@
 - Status ONGOING is verified against node file in './incidents/active'
 	-OPENED sub-status is removed.
 	- Interval marker is updated to [1]
-	- [ACTION] API notification is sent to listening roomId(s)
-	```
-	    <strong>NOTICE</strong> New Status Message Posted: 
-		<a href="_link_">_title_</a>
-		<strong>Status:</strong> OPENED" }' \
-		https://api.hipchat.com/v2/room/437235/notification? \
-		auth_token=$HUBOT_TEST_TOKEN 
-	```
 
-**fustatus-event.py  [completion: 00%]**
-- event handler and API interactions
+
+**fs-action.py
+
+- [ACTION] API notifications is sent to listening roomId(s)
+
+```
+    <strong>NOTICE</strong> New Status Message Posted: 
+    <a href="_link_">_title_</a>
+    <strong>Status:</strong> OPENED" }' \
+    https://api.hipchat.com/v2/room/437235/notification? \
+    auth_token=$HUBOT_TEST_TOKEN 
+```
+
 
 	
-**Outline of what needs to happen for Maintenance Notifications**
-
- - fustatus-scrape.py (maintenance_method)
-Scrapes status page every 5 minutes
-Nodes on page are counted and stored in a JSON dictionary
- - humaintenance.py

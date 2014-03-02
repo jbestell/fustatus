@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# Public: fustatus-item
+#!/usr/bin/env python
+# Public: fs-item.py
 #
 # SupFubot project - Item Event Status Processor
 # For details see:
@@ -15,14 +15,8 @@ from lxml import html
 import lxml.html
 import requests
 
-# Fancy reassignment of string to POSIX timestamp. In our current context:
-# "Monday, February 24, 2014 11:30 AM UTC" strptime([var],"%A, %B %d, %Y %I:%M %p %Z") -->  strftime("%s",[var])
-def timestamp (str, informat, outformat):
-	"Convert a string date to a POSIX timestamp"
-	global time
-	str = time.strptime(str, informat)
-	str = strftime(outformat,str)
-	return str;
+#Name this script
+name = "hpcloud-incident-status-processor"
 
 # Possible Status values
 current_status = ['ONGOING', 'MONITORING', 'RESOLVED']
@@ -33,8 +27,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument('incident_file', help='<path to file with incidents to scrape>')
 args = parser.parse_args()
 
-#Name this script
-name = "hpcloud-incident-status-processor"
+# Fancy reassignment of string to POSIX timestamp. In our current context:
+# "Monday, February 24, 2014 11:30 AM UTC" strptime([var],"%A, %B %d, %Y %I:%M %p %Z") -->  strftime("%s",[var])
+def timestamp (str, informat, outformat):
+	"Convert a string date to a POSIX timestamp"
+	global time
+	str = time.strptime(str, informat)
+	str = strftime(outformat,str)
+	return str;
+
 # Get the Current 'node', basically signifying the working incident in Drupal's niceurl config
 nodes  = args.incident_file
 

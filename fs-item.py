@@ -18,6 +18,9 @@ import requests
 #Name this script
 name = "hpcloud-incident-status-processor"
 
+# Path to the incidents directory
+indt_path = '/home/hpcsint/prod/fustatus/incidents/'
+
 # Possible Status values
 current_status = ['ONGOING', 'MONITORING', 'RESOLVED']
 
@@ -153,12 +156,12 @@ for nodeid in nodes:
 
 
 	try:
-			f = open('/home/hpcsint/fustatus/incidents/' + current_link + '.json','w')
+			f = open(indt_path + current_link + '.json','w')
 			f.write(str(item) + '\n')
 			f.close()
 	except IOError:
 			print "Error: can\'t find file or read data"
 	else:
 				print current_link + ".json written successfully"
-
-print nodes
+# for debugging
+#print nodes

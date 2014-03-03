@@ -18,6 +18,10 @@ import requests
 #Name this script
 name = "hpcloud-incident-event-handler"
 
+# Path to the incidents directory
+indt_path = '/home/hpcsint/prod/fustatus/incidents/'
+indt_file = 'current'
+
 ''' fs-event.py [completion: 00%] uses python-crontab to generate, maintain and delete cron jobs for periodic API interactions
 
 	-- monitors current 'status' of incidents in './incidents'
@@ -34,21 +38,19 @@ name = "hpcloud-incident-event-handler"
 	-- a 'duration' timestamp (POSIX), calculated from the arbitrary start time entered by agent, is appended based on the current interval
 '''
 
-#file = open('/home/hpcsint/fustatus/incidents/currentmaster.list')
 
 # grabs the file written by fustatus-scrape and reads it in as a list for processing
-with open('/home/hpcsint/fustatus/incidents/currentmaster.list') as f:
+with open(indt_path + indt_file) as f:
         nodes = f.read()
-#nodes =  nodes.replace("[", "").replace("]", "").strip().split(', ')
-nodes = ['2464', '2441']
+nodes =  nodes.replace("[", "").replace("]", "").strip().split(', ')
 
 for node in nodes:
-	with open('/home/hpcsint/fustatus/incidents/' + node + '.json') as f:
+	with open(indt_path + node + '.json') as f:
 	        items = f.read()
 items = items.split(",", 200)
 
 #print node[1]
-print items[1]
+print items
 
 
 

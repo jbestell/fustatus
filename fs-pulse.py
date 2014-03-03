@@ -5,19 +5,18 @@
 # For details see:
 # https://github.com/jbestell/fustatus
 
-import time
-import argparse
-from time import strftime
-from time import mktime
-from datetime import datetime
-import json
 from lxml import html
 import lxml.html
 import requests
+from collections import OrderedDict
 
 
 #Name this script
 name = "hpcloud-incident-status-scraper"
+
+# Path to the incidents directory
+indt_path = '/home/hpcsint/prod/fustatus/incidents/'
+indt_file = 'current'
 
 # Type can be Incident or Maintenance but really almost always incident
 type = "incident"
@@ -31,20 +30,18 @@ tree = html.fromstring(entry.text)
 links = [i.split('/')[3] for i in tree.xpath("//a[contains(@href, 'incident')]/@href")]
 links = [ int(x) for x in links ]
 
+# Reassign to remove nasty duplicates issue when no end date is set (bug)
+links = list(set(links))
+
 
 # Writes to file to be grabbed by fustatus-item
-f = open('/home/hpcsint/fustatus/incidents/currentmaster.list','w')
+f = open(indt_path + indt_file,'w')
 f.write(str(links) + '\n')
 f.close()
 
-#with open("incidents/currentmaster.list") as f:
+
+# Debugging
+#with open(indt_path + indt_file) as f:
 #        nodes = f.read()
 #print nodes.replace("[", "").replace("]", "").strip().split(',')
-
-nodes = "/home/hpcsint/fustatus/incidents/currentmaster.list"
-
-with open(nodes) as f:
-        nodes = f.read()
-nodes =  nodes.replace("[", "").replace("]", "").strip().split(',')
-
-#print nodes
+#print links

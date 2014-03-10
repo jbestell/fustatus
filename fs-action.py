@@ -59,11 +59,13 @@ imgs = {
             }
 strs =      {
              'notc' : 'Incident Posted:&nbsp;',
+             'indt':  'Incident:&nbsp;',
              'start': 'Start:&nbsp;',
              'end'  : 'End:&nbsp;',
              'pstrt': 'Posted Start:&nbsp;',
              'pend' : 'Posted End:&nbsp;',
-             'desc' : 'Description:&nbsp;'
+             'desc' : 'Description:&nbsp;',
+             'stat' : 'Current Status:&nbsp;'
             }
 msg_color = [ "red", "green", "yellow", "gray", "purple" ]
 msg_format = [ "html", "text" ]
@@ -71,10 +73,10 @@ msg_format = [ "html", "text" ]
 headers = { "Content-Type" : "application/json" }
 
 # Room ID's to notify, have to loop over this with the API request if there are multiple rooms
-rooms = ['437185', '437235']
+rooms = ['437185', '437235', '472193']
 
 # API URL concatenation with room !!REFACTOR  this
-hpcapi_url = 'https://api.hipchat.com/v2/room/' + rooms[0] + '/notification?auth_token='
+hpcapi_url = 'https://api.hipchat.com/v2/room/' + rooms[2] + '/notification?auth_token='
 
 # need to make this persist on the server independent of no interactive session
 hpctkn = os.environ['hutkn_sbx']
@@ -94,11 +96,14 @@ with open(args.active_incident_file, 'r') as file:
     else:
         time_end = "---"
 
+indt['status'] = 'MONITORING'
+
 # This is the Incident Notification body.  Once all contexts are better defined,
 # this can probably be functionalized !!REFACTOR
-message = (imgit(img_url, imgs['dash'])+
-           imgit(img_url, imgs['adv']) +
-           boldit(strs['notc']) + indt['title'] + brk +
+message = (imgit(img_url, imgs['notc']) +
+           boldit(strs['indt']) + indt['title'] + brk +
+           imgit(img_url, imgs['dash'])+
+           boldit(strs['stat'] + indt['status']) + brk +
            boldit(strs['pstrt'] +
            emphit(hr_timestamp (indt['time_start'], "%A, %B %d, %Y %I:%M %p %Z"))) + brk +
            boldit(strs['pend'] + emphit(time_end)) + brk +
@@ -109,7 +114,7 @@ message = (imgit(img_url, imgs['dash'])+
 # Construct the data body in JSON. This could probably also be a function too !!REFACTOR
 
 json_pl =  json.dumps({ "notify" : True,
-            "color" : msg_color[0],
+            "color" : msg_color[2],
             "message_format" : msg_format[0],
             "message" : message
           })

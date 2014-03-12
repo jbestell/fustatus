@@ -102,69 +102,67 @@ for nodeId_s in nodeList_l:
 
         # A Status of RESOLVED is the best indicator that the End Field might be populated, so use it for conditionals.
         if nodeProps_d['status'] in (current_status[2]):
-                        try:
-                                        #Matches if Product is Set
-                                        nodeProps_d['time_start'] = timestamp(tree.xpath(match_start1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+            try:
+                #Matches if Product is Set
+                nodeProps_d['time_start'] = timestamp(tree.xpath(match_start1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
-                        except IndexError:
+            except IndexError:
 
+                nodeProps_d['time_start'] = timestamp(tree.xpath(match_start2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
-                                        nodeProps_d['time_start'] = timestamp(tree.xpath(match_start2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+            try:
 
-                        try:
+                # Matches if Product AND End Date is Shown  /div/div[1]/div[2]/div/div/div[2]/span/text()')[0]
+                nodeProps_d['time_end'] = timestamp(tree.xpath(match_end1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
-                                        # Matches if Product AND End Date is Shown  /div/div[1]/div[2]/div/div/div[2]/span/text()')[0]
+            except IndexError:
+                try:
+                    # Matches if only Start and End Date is Shown /div/div[1]/div[1]/div/div/div[2]/span
+                    nodeProps_d['time_end'] = timestamp(tree.xpath(match_end2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
-                                                                        nodeProps_d['time_end'] = timestamp(tree.xpath(match_end1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+                except IndexError:
+                    # Resolved, but No Product or End Date - Set it to Start Date (legacy)
+                    nodeProps_d['time_end'] = nodeProps_d['time_start']
 
-                        except IndexError:
-                                        try:
-                                                        # Matches if only Start and End Date is Shown /div/div[1]/div[1]/div/div/div[2]/span
-                                                        nodeProps_d['time_end'] = timestamp(tree.xpath(match_end2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
-
-                                        except IndexError:
-                                                        # Resolved, but No Product or End Date - Set it to Start Date (legacy)
-                                                        nodeProps_d['time_end'] = nodeProps_d['time_start']
-
-                                        else:
-                                                        # All Three: Product, Start and End are set /div/div[1]/div[2]/div/div/div[2]/span
-                                                        nodeProps_d['time_end'] = timestamp(tree.xpath(match_end3)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
-                                        
-                        else:
-                                        # Pass for all other conditions (ultimate)
-                                        #nodeProps_d['time_end'] = None
-                                        pass
+                else:
+                    # All Three: Product, Start and End are set /div/div[1]/div[2]/div/div/div[2]/span
+                    nodeProps_d['time_end'] = timestamp(tree.xpath(match_end3)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+                 
+            else:
+                # Pass for all other conditions (ultimate)
+                #nodeProps_d['time_end'] = None
+                pass
 
         # If the status is ONGOING or MONITORING
         elif nodeProps_d['status'] in (current_status[0], current_status[1]):
 
-                        try:
-                                        # ONG / MON - Matches Start if Product IS set.
-                                        nodeProps_d['time_start'] = timestamp(tree.xpath(match_start1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+            try:
+                # ONG / MON - Matches Start if Product IS set.
+                nodeProps_d['time_start'] = timestamp(tree.xpath(match_start1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
-                        except IndexError:
+            except IndexError:
 
-                                        # ONG / MON - Matches Start if Product IS NOT set.
-                                        nodeProps_d['time_start'] = timestamp(tree.xpath(match_start2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+                # ONG / MON - Matches Start if Product IS NOT set.
+                nodeProps_d['time_start'] = timestamp(tree.xpath(match_start2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
-                        #no END Date, so...
-                        nodeProps_d['time_end'] = None
+            #no END Date, so...
+                nodeProps_d['time_end'] = None
 
         else:
-                        # For all other scenarios, just null them both out.
-                        nodeProps_d['time_start'] = None
-                        nodeProps_d['time_end'] = None
+            # For all other scenarios, just null them both out.
+            nodeProps_d['time_start'] = None
+            nodeProps_d['time_end'] = None
 
 
         try:
-                        item_array = json.dumps(nodeProps_d, ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': '))
-                        f = open(indt_path + nodeId_s + '.json', 'w')
-                        f.write(item_array + '\n')
-                        f.close()
+            item_array = json.dumps(nodeProps_d, ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': '))
+            f = open(indt_path + nodeId_s + '.json', 'w')
+            f.write(item_array + '\n')
+            f.close()
         except IOError:
-                        print "Error: can\'t find file or read data"
+            print "Error: can\'t find file or read data"
         else:
-                                print nodeId_s + ".json written successfully"
+            print nodeId_s + ".json written successfully"
 # for debugging
 #print nodes
 

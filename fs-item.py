@@ -157,9 +157,9 @@ for nodeId_s in nodeList_l:
 
 
         try:
-                        item = json.dumps(nodeProps_d, ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': '))
+                        item_array = json.dumps(nodeProps_d, ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': '))
                         f = open(indt_path + nodeId_s + '.json', 'w')
-                        f.write(item + '\n')
+                        f.write(item_array + '\n')
                         f.close()
         except IOError:
                         print "Error: can\'t find file or read data"

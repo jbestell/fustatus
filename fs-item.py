@@ -39,57 +39,57 @@ def timestamp (str, informat, outformat):
         str = strftime(outformat,str)
         return str;
 
-# Get the Current 'node', basically signifying the working incident in Drupal's niceurl config
-nodes  = args.incident_file
+# Argument specifies file passed in, which is a comma-separated string of 'node' ID's
+nodeList_s  = args.incident_file
 
-# grabs the file written by fustatus-scrape and reads it in as a list for processing
-with open(nodes) as f:
-        nodes = f.read()
-nodes =  nodes.replace("[", "").replace("]", "").strip().split(', ')
+# Grab the file written by fs-pulse.py and reads it in as a list for processing
+with open(nodeList_s) as f:
+        nodeList_s = f.read()
+nodeList_l =  nodeList_s.replace("[", "").replace("]", "").strip().split(', ')
 
 # Type can be Incident or Maintenance but really almost always incident
 # !!CONSIDER REMOVING
 type = "incident"
 
-
-for nodeid in nodes:
-        current_link = nodeid
-
+# Iterate through nodIed's and build a Dictionary for each, writing to individual files
+for nodeId_s in nodeList_l:
+        
         # The working permalink to the incident report
-        start_url = "https://community.hpcloud.com/status/" + type + "/" + current_link
+        start_url = "https://community.hpcloud.com/status/" + type + "/" + nodeId_s
 
         # Use LXML to grab the document and save it as an object
-        entry  = requests.get("https://community.hpcloud.com/status/" + type + "/" + current_link)
+        entry  = requests.get("https://community.hpcloud.com/status/" + type + "/" + nodeId_s)
         tree = html.fromstring(entry.text)
 
-        # locating XPATH matches in one spot node ID is in CSS id
-        node_match   = '//*[@id="node-' + current_link
-        # match_desc   = node_match + '"]/div/div[last()]/div/div/text()'
+        # These are all the required XPATH matches in one spot  
+        # nodeId is the div ID for each
+        node_match   = '//*[@id="node-' + nodeId_s
         match_title = '//*[@id="page-title"]/text()'
         match_desc   = node_match + '"]/div/div[last()]/div/div/descendant::*/text()'
         # 'status' is always the last element in the group of children, so use XPATH thusly
         match_status = node_match + '"]/div/div[1]/div[last()]/div[last()]/div/text()'
+        # Multiple possibilities for the location of 'Start Time' and 'End Time' based 
+        # on which details are specified in the incident form
         match_start1 = node_match + '"]/div/div[1]/div[2]/div/div/div[1]/span/text()'
         match_start2 = node_match + '"]/div/div[1]/div[1]/div/div/div[1]/span/text()'
         match_start3 = node_match + '"]/div/div[1]/div[2]/div/div/div[1]/span/text()'
         match_end1   = node_match + '"]/div/div[1]/div[2]/div/div/div[2]/span/text()'
         match_end2   = node_match + '"]/div/div[1]/div[1]/div/div/div[2]/span/text()'
         match_end3   = node_match + '"]/div/div[1]/div[2]/div/div/div[2]/span/text()'
-
-
-        # Build a list object using XPATH and some local variable magic
-        item = {}
-        item['nodeId'] = current_link
-        item['link'] = start_url
-        item['title'] = tree.xpath(str(match_title))[0]
+        
+        # The Dictionary object 
+        nodeProps_d = {}
+        nodeProps_d['nodeId'] = nodeId_s
+        nodeProps_d['link'] = start_url
+        nodeProps_d['title'] = tree.xpath(str(match_title))[0]
         #Set these to 'None' for now, as they are to be modified later in the cycle
-        item['sub_status'] = None
-        item['interval'] = None
+        nodeProps_d['sub_status'] = None
+        nodeProps_d['interval'] = None
         # Get the description - join if multiple descendant paragraphs.
-        item['desc'] = tree.xpath(str(match_desc))
-        item['desc'] = " ".join(item['desc'])
+        nodeProps_d['desc'] = tree.xpath(str(match_desc))
+        nodeProps_d['desc'] = " ".join(nodeProps_d['desc'])
 
-        item['status'] = tree.xpath(str(match_status))[0].upper()
+        nodeProps_d['status'] = tree.xpath(str(match_status))[0].upper()
 
 
         # This is the tricky bit - there can be as many as four //div/ child matches for <div class="filed-label">
@@ -101,71 +101,70 @@ for nodeid in nodes:
         # items whether or not they exist.
 
         # A Status of RESOLVED is the best indicator that the End Field might be populated, so use it for conditionals.
-        if item['status'] in (current_status[2]):
+        if nodeProps_d['status'] in (current_status[2]):
                         try:
                                         #Matches if Product is Set
-                                        item['time_start'] = timestamp(tree.xpath(match_start1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+                                        nodeProps_d['time_start'] = timestamp(tree.xpath(match_start1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
                         except IndexError:
 
 
-                                        item['time_start'] = timestamp(tree.xpath(match_start2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+                                        nodeProps_d['time_start'] = timestamp(tree.xpath(match_start2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
                         try:
 
                                         # Matches if Product AND End Date is Shown  /div/div[1]/div[2]/div/div/div[2]/span/text()')[0]
 
-                                                                        item['time_end'] = timestamp(tree.xpath(match_end1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+                                                                        nodeProps_d['time_end'] = timestamp(tree.xpath(match_end1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
                         except IndexError:
                                         try:
                                                         # Matches if only Start and End Date is Shown /div/div[1]/div[1]/div/div/div[2]/span
-                                                        item['time_end'] = timestamp(tree.xpath(match_end2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+                                                        nodeProps_d['time_end'] = timestamp(tree.xpath(match_end2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
                                         except IndexError:
                                                         # Resolved, but No Product or End Date - Set it to Start Date (legacy)
-                                                        item['time_end'] = item['time_start']
+                                                        nodeProps_d['time_end'] = nodeProps_d['time_start']
 
                                         else:
                                                         # All Three: Product, Start and End are set /div/div[1]/div[2]/div/div/div[2]/span
-                                                        item['time_end'] = timestamp(tree.xpath(match_end3)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
-
-
+                                                        nodeProps_d['time_end'] = timestamp(tree.xpath(match_end3)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+                                        
                         else:
                                         # Pass for all other conditions (ultimate)
-                                        #item['time_end'] = None
+                                        #nodeProps_d['time_end'] = None
                                         pass
 
         # If the status is ONGOING or MONITORING
-        elif item['status'] in (current_status[0], current_status[1]):
+        elif nodeProps_d['status'] in (current_status[0], current_status[1]):
 
                         try:
                                         # ONG / MON - Matches Start if Product IS set.
-                                        item['time_start'] = timestamp(tree.xpath(match_start1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+                                        nodeProps_d['time_start'] = timestamp(tree.xpath(match_start1)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
                         except IndexError:
 
                                         # ONG / MON - Matches Start if Product IS NOT set.
-                                        item['time_start'] = timestamp(tree.xpath(match_start2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
+                                        nodeProps_d['time_start'] = timestamp(tree.xpath(match_start2)[0], "%A, %B %d, %Y %I:%M %p %Z", "%s")
 
                         #no END Date, so...
-                        item['time_end'] = None
+                        nodeProps_d['time_end'] = None
 
         else:
                         # For all other scenarios, just null them both out.
-                        item['time_start'] = None
-                        item['time_end'] = None
+                        nodeProps_d['time_start'] = None
+                        nodeProps_d['time_end'] = None
 
 
         try:
-                        item = json.dumps(item, ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': '))
-                        f = open(indt_path + current_link + '.json', 'w')
+                        item = json.dumps(nodeProps_d, ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': '))
+                        f = open(indt_path + nodeId_s + '.json', 'w')
                         f.write(item + '\n')
                         f.close()
         except IOError:
                         print "Error: can\'t find file or read data"
         else:
-                                print current_link + ".json written successfully"
+                                print nodeId_s + ".json written successfully"
 # for debugging
 #print nodes
 
